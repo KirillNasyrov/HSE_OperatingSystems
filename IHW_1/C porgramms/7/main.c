@@ -68,7 +68,9 @@ int main(int argc, char* argv[]) {
             printf("Can\'t read string from pipe\n");
             exit(-1);
         }
-        printf("%s\n", buffer);
+        printf("result, %s\n", buffer);
+        int fd_output = open(output_file, O_WRONLY);
+        write(fd_output, buffer, bytes_read + 1);
         close(fd_channel2);
         exit(0);
     }
@@ -99,7 +101,6 @@ int main(int argc, char* argv[]) {
                 buffer[j] = buffer[n2 - (j - n1)];
                 buffer[n2 - (j - n1)] = letter;
             }
-            //printf("2 fork, %s\n", buffer);
             write(fd_channel2, buffer, bytes_read);
         }
         close(fd_channel1);

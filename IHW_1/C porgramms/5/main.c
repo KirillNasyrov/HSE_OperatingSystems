@@ -106,7 +106,9 @@ int main(int argc, char* argv[]) {
             printf("Can\'t read string from pipe\n");
             exit(-1);
         }
-        printf("%s\n", buffer);
+        printf("result, %s\n", buffer);
+        int fd_output = open(argv[2], O_WRONLY);
+        write(fd_output, buffer, bytes_read);
         close(fd_channel2);
         exit(0);
     }

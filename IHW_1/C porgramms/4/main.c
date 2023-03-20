@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 
-#define MAX_BUFFER_SIZE 1024
+#define BUFFER_SIZE 5000
 
 int main(int argc, char *argv[]) {
     if (argc != 5) {
@@ -11,8 +12,6 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    char *input_file = argv[1];
-    char *output_file = argv[2];
     int n1 = atoi(argv[3]);
     int n2 = atoi(argv[4]);
 
@@ -48,7 +47,7 @@ int main(int argc, char *argv[]) {
             // Child process
             if (i == 0) {
                 // First child process reads from file and writes to first pipe
-                char buffer[MAX_BUFFER_SIZE];
+                char buffer[BUFFER_SIZE];
                 close(pipe_fd[0][0]);
                 if ((read_bytes = fread(buffer, 1, sizeof(buffer), file)) > 0) {
                     buffer[read_bytes] = 0;
@@ -57,12 +56,11 @@ int main(int argc, char *argv[]) {
                         exit(1);
                     }
                 }
-                printf("%s\n", buffer);
                 close(pipe_fd[0][1]);
                 exit(0);
             } else if (i == 1) {
                 // Second child process reads from first pipe and writes to second pipe
-                char buffer[MAX_BUFFER_SIZE];
+                char buffer[BUFFER_SIZE];
                 close(pipe_fd[0][1]);
                 close(pipe_fd[1][0]);
                 if ((read_bytes = read(pipe_fd[0][0], buffer, sizeof(buffer))) > 0) {
@@ -86,14 +84,16 @@ int main(int argc, char *argv[]) {
                 exit(0);
             } else if (i == 2) {
                 // Third child process reads from second pipe and writes to output file
-                char buffer[MAX_BUFFER_SIZE];
+                char buffer[BUFFER_SIZE];
                 close(pipe_fd[1][1]);
                 read_bytes = read(pipe_fd[1][0], buffer, sizeof(buffer));
                 if (read_bytes < 0){
                     printf("Can\'t read string from pipe\n");
                     exit(-1);
                 }
-                printf("%s\n", buffer);
+                printf("result, %s\n", buffer);
+                int fd_output = open(argv[2], O_WRONLY);
+                write(fd_output, buffer, read_bytes);
                 close(pipe_fd[1][0]);
             }
         }
