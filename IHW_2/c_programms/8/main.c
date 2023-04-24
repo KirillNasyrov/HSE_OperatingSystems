@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/mman.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #define SHM_KEY 6789
 #define SEMR_KEY 7890
@@ -18,9 +18,7 @@ struct shared {
     bool found;
 };
 
-int main(int argc, char **argv) {
-    int k = atoi(argv[1]);
-
+int main(void) {
     int shmid;
     struct shared *data;
     int sem_read, sem_write;
@@ -67,50 +65,7 @@ int main(int argc, char **argv) {
     semctl(sem_write, 0, SETVAL, 1);
 
 
-    int pid;
-    for (int j = 0; j < k; ++j) {
-        // создаем дочерний процесс
-        pid = fork();
-        if (pid == -1) {
-            perror("fork");
-            exit(EXIT_FAILURE);
-        } else if (pid == 0) {
-            // дочерний процесс
-            for (;;) {
-                sleep(1);
-
-                sem_buf.sem_num = 0;
-                sem_buf.sem_op = -1;
-                sem_buf.sem_flg = 0;
-                semop(sem_read, &sem_buf, 1);
-
-                if (data->found == true) {
-                    sem_buf.sem_op = 1;
-                    semop(sem_write, &sem_buf, 1);
-
-                    exit(EXIT_SUCCESS);
-                }
-
-                if (data->table[data->current_x][data->current_y] == 100) {
-                    data->found = true;
-                    printf("группа <%d> нашла клад в [%d][%d]\n", j + 1, data->current_x, data->current_y);
-                    fflush(stdout);
-
-                    sem_buf.sem_op = 1;
-                    semop(sem_write, &sem_buf, 1);
-
-                    exit(EXIT_SUCCESS);
-                } else {
-                    printf("группа <%d> не нашла клад в [%d][%d]\n", j + 1, data->current_x, data->current_y);
-                    fflush(stdout);
-
-                    sem_buf.sem_op = 1;
-                    semop(sem_write, &sem_buf, 1);
-                }
-            }
-        }
-    }
-
+    sleep(10);
     // родительский процесс
     while (data->found == false) {
 

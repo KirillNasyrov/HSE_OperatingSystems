@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <semaphore.h>
@@ -18,12 +17,9 @@ struct shared {
     bool found;
 };
 
-int main(int argc, char **argv) {
-    int k = atoi(argv[1]);
-
+int main(void) {
     int fd;
     sem_t *semafor_write, *semafor_read;
-    pid_t pid;
 
     shm_unlink(SHM_NAME);
 
@@ -33,7 +29,12 @@ int main(int argc, char **argv) {
         perror("shm_open");
         exit(EXIT_FAILURE);
     }
-    ftruncate(fd, sizeof(struct shared));
+
+    if (ftruncate(fd, sizeof(struct shared)) == -1) {
+        perror("ftruncate");
+        return 1;
+    }
+
     struct shared *data = mmap(NULL, sizeof(struct shared), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (data == MAP_FAILED) {
         perror("mmap");
@@ -68,39 +69,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    for (int j = 0; j < k; ++j) {
-        // создаем дочерний процесс
-        pid = fork();
-        if (pid == -1) {
-            perror("fork");
-            exit(EXIT_FAILURE);
-        } else if (pid == 0) {
-            // дочерний процесс
-            for (;;) {
-                sleep(1);
-                sem_wait(semafor_read); // захватываем семафор
-                if (data->found == true) {
-                    sem_post(semafor_write); // освобождаем семафор
-                    exit(EXIT_SUCCESS);
-                }
-
-                if (data->table[data->current_x][data->current_y] == 100) {
-                    data->found = true;
-                    printf("группа <%d> нашла клад в [%d][%d]\n", j+1, data->current_x, data->current_y);
-                    fflush(stdout);
-                    sem_post(semafor_write); // освобождаем семафор
-                    exit(EXIT_SUCCESS);
-                } else {
-                    printf("группа <%d> не нашла клад в [%d][%d]\n",j+1 , data->current_x, data->current_y);
-                    fflush(stdout);
-                    sem_post(semafor_write); // освобождаем семафор
-                }
-
-                //sem_post(semafor_write); // освобождаем семафор
-            }
-        }
-    }
-
+    sleep(10);
     // родительский процесс
     while (data->found == false) {
         sem_wait(semafor_write); // захватываем семафор

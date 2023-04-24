@@ -20,9 +20,10 @@ struct shared {
     bool found;
 };
 
-int main(void) {
+int main(int argc, char **argv) {
+    int k = atoi(argv[1]);
+
     int fd;
-    //sem_t *semafor_write, *semafor_read;
     pid_t pid;
 
     shm_unlink(SHM_NAME);
@@ -59,7 +60,7 @@ int main(void) {
     sem_init(&data->semafor_write, 6, 1);
     sem_init(&data->semafor_read, 6, 0);
 
-    for (int j = 0; j < 5; ++j) {
+    for (int j = 0; j < k; ++j) {
         // создаем дочерний процесс
         pid = fork();
         if (pid == -1) {
@@ -77,12 +78,12 @@ int main(void) {
 
                 if (data->table[data->current_x][data->current_y] == 100) {
                     data->found = true;
-                    printf("группа нашла клад в [%d][%d]\n", data->current_x, data->current_y);
+                    printf("группа <%d> нашла клад в [%d][%d]\n", j + 1, data->current_x, data->current_y);
                     fflush(stdout);
                     sem_post(&data->semafor_write); // освобождаем семафор
                     exit(EXIT_SUCCESS);
                 } else {
-                    printf("группа не нашла клад в [%d][%d]\n", data->current_x, data->current_y);
+                    printf("группа <%d> не нашла клад в [%d][%d]\n", j + 1, data->current_x, data->current_y);
                     fflush(stdout);
                     sem_post(&data->semafor_write); // освобождаем семафор
                 }
@@ -103,11 +104,6 @@ int main(void) {
 
         sem_post(&data->semafor_read); // освобождаем семафор
     }
-
-    // ожидаем завершения дочерних процессов
-    //for (int j = 0; j < 5; ++j) {
-    //    wait(NULL);
-    //}
 
     // отсоединяем разделяемую память
     munmap(data, sizeof(struct shared));
